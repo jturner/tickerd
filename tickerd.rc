@@ -1,0 +1,10 @@
+#!/bin/sh
+
+daemon="/usr/local/bin/tickerd"
+daemon_user="james"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+
+rc_cmd $1
