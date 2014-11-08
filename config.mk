@@ -6,7 +6,7 @@ LIB ?= -L/usr/local/lib
 
 # flags
 CFLAGS += -Wall -Os ${INC}
-LDFLAGS += ${LIB} -lcrypto -lressl -lssl
+LDFLAGS += ${LIB} -lcrypto -ltls -lssl
 
 # compiler and linker
 CC ?= cc

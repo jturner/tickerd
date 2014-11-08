@@ -15,7 +15,7 @@
  */
 
 #include <sys/types.h>
-#include <ressl.h>
+#include <tls.h>
 
 #include <err.h>
 #include <stdio.h>
@@ -36,28 +36,28 @@ update_ticker(char *host, char *path)
 {
 	char *sub = NULL, *port = "443";
 	char buf[BUFSIZ];
-	struct ressl_config *config;
-	struct ressl *ctx;
+	struct tls_config *config;
+	struct tls *ctx;
 	size_t len;
 	JSON_Value *root;
 	JSON_Object *ticker;
 
-	ressl_init();
-	config = ressl_config_new();
+	tls_init();
+	config = tls_config_new();
 
-	ctx = ressl_client();
-	ressl_configure(ctx, config);
+	ctx = tls_client();
+	tls_configure(ctx, config);
 
-	ressl_connect(ctx, host, port);
+	tls_connect(ctx, host, port);
 
 	snprintf(buf, sizeof(buf), "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path,
 		host);
-	ressl_write(ctx, buf, strlen(buf), &len);
-	ressl_read(ctx, buf, sizeof(buf), &len);
+	tls_write(ctx, buf, strlen(buf), &len);
+	tls_read(ctx, buf, sizeof(buf), &len);
 
-	ressl_close(ctx);
-	ressl_config_free(config);
-	ressl_free(ctx);
+	tls_close(ctx);
+	tls_config_free(config);
+	tls_free(ctx);
 
 	sub = strstr(buf, "\r\n\r\n");
 	sub = sub + 4;
