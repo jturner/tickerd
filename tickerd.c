@@ -23,24 +23,29 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "parson.h"
+#include "mjson.h"
 
 #define OUTPUT_FILE	"/var/www/htdocs/bitcoinxtr/price.txt"
 #define PRICE_FMT	"$%.2f USD"
 
-static int cnt = 0;
-static double price = 0;
+static double rate;
+static char code[4], name[10];
+
+static const struct json_attr_t json_attrs[] = {
+	{"code", t_string, .addr.string = code, .len = sizeof(code)},
+	{"name", t_string, .addr.string = name, .len = sizeof(name)},
+	{"rate", t_real,   .addr.real = &rate},
+	{NULL},
+};
 
 static void
-update_ticker(char *host, char *path)
+update_ticker(char *host, char *path, FILE *fp)
 {
-	char *sub = NULL, *port = "443";
-	char buf[4096];
 	struct tls_config *config;
 	struct tls *ctx;
 	size_t len;
-	JSON_Value *root;
-	JSON_Object *ticker;
+	char buf[4096];
+	char *json, *port = "443";
 
 	tls_init();
 	config = tls_config_new();
@@ -59,40 +64,14 @@ update_ticker(char *host, char *path)
 	tls_config_free(config);
 	tls_free(ctx);
 
-	sub = strstr(buf, "\r\n\r\n");
-	sub = sub + 4;
+	json = strstr(buf, "\r\n\r\n");
+	json = json + 4;
 
-	root = json_parse_string(sub);
-
-	if (json_value_get_type(root) == JSONObject) {
-		ticker = json_value_get_object(root);
-
-		if (json_value_get_type(json_object_get_value(ticker,
-			"USD")) == JSONObject) {
-			price = price + json_object_dotget_number(ticker,
-				"USD.last");
-			cnt++;
-		} else {
-			price = price + json_object_dotget_number(ticker,
-				"ticker.last");
-			cnt++;
-		}
+	if (json_read_object(json, json_attrs, NULL) == 0) {
+		rewind(fp);
+		fprintf(fp, PRICE_FMT, rate);
+		fflush(fp);
 	}
-
-	json_value_free(root);
-}
-
-static void
-write_price(FILE *fp)
-{
-	if (cnt == 0)
-		return;
-
-	rewind(fp);
-	fprintf(fp, PRICE_FMT, (price / cnt));
-	fflush(fp);
-
-	cnt = 0, price = 0;
 }
 
 static void
@@ -134,10 +113,8 @@ main(int argc, char *argv[])
 		err(1, "daemon");
 
 	while (1) {
-		update_ticker("btc-e.com", "/api/2/btc_usd/ticker");
-		update_ticker("blockchain.info", "/ticker");
-		write_price(fp);
-		sleep(30);
+		update_ticker("bitpay.com", "/api/rates/usd", fp);
+		sleep(60);
 	}
 
 	fclose(fp);

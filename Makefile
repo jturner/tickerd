@@ -1,6 +1,6 @@
 include config.mk
 
-SRC = parson.c tickerd.c
+SRC = mjson.c tickerd.c
 OBJ = ${SRC:.c=.o}
 
 all: tickerd
