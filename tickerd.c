@@ -39,15 +39,12 @@ static const struct json_attr_t json_attrs[] = {
 };
 
 static void
-update_ticker(char *host, char *path, FILE *fp)
+update_ticker(char *host, char *path, struct tls_config *config, FILE *fp)
 {
-	struct tls_config *config;
 	struct tls *ctx;
 	size_t len;
 	char buf[4096];
 	char *json, *port = "443";
-
-	config = tls_config_new();
 
 	ctx = tls_client();
 	tls_configure(ctx, config);
@@ -61,7 +58,6 @@ update_ticker(char *host, char *path, FILE *fp)
 
 	tls_close(ctx);
 	tls_free(ctx);
-	tls_config_free(config);
 
 	json = strstr(buf, "\r\n\r\n");
 	json = json + 4;
@@ -85,6 +81,7 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
+	struct tls_config *config;
 	int ch, debug = 0;
 	FILE *fp;
 
@@ -113,11 +110,14 @@ main(int argc, char *argv[])
 
 	tls_init();
 
+	config = tls_config_new();
+
 	while (1) {
-		update_ticker("bitpay.com", "/api/rates/usd", fp);
+		update_ticker("bitpay.com", "/api/rates/usd", config, fp);
 		sleep(60);
 	}
 
 	fclose(fp);
+	tls_config_free(config);
 	return (0);
 }
