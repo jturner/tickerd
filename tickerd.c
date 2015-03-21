@@ -47,7 +47,6 @@ update_ticker(char *host, char *path, FILE *fp)
 	char buf[4096];
 	char *json, *port = "443";
 
-	tls_init();
 	config = tls_config_new();
 
 	ctx = tls_client();
@@ -61,8 +60,8 @@ update_ticker(char *host, char *path, FILE *fp)
 	tls_read(ctx, buf, sizeof(buf), &len);
 
 	tls_close(ctx);
-	tls_config_free(config);
 	tls_free(ctx);
+	tls_config_free(config);
 
 	json = strstr(buf, "\r\n\r\n");
 	json = json + 4;
@@ -111,6 +110,8 @@ main(int argc, char *argv[])
 
 	if (!debug && daemon(0, 0) == -1)
 		err(1, "daemon");
+
+	tls_init();
 
 	while (1) {
 		update_ticker("bitpay.com", "/api/rates/usd", fp);
