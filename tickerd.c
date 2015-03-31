@@ -46,18 +46,19 @@ update_ticker(char *host, char *path, struct tls_config *config, FILE *fp)
 	char buf[4096];
 	char *json, *port = "443";
 
-	ctx = tls_client();
-	tls_configure(ctx, config);
+	if ((ctx = tls_client()) == NULL)
+		goto cleanup;
 
-	tls_connect(ctx, host, port);
+	if (tls_configure(ctx, config) != 0)
+		goto cleanup;
+
+	if (tls_connect(ctx, host, port) != 0)
+		goto cleanup;
 
 	snprintf(buf, sizeof(buf), "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path,
 		host);
 	tls_write(ctx, buf, strlen(buf), &len);
 	tls_read(ctx, buf, sizeof(buf), &len);
-
-	tls_close(ctx);
-	tls_free(ctx);
 
 	json = strstr(buf, "\r\n\r\n");
 	json = json + 4;
@@ -66,6 +67,12 @@ update_ticker(char *host, char *path, struct tls_config *config, FILE *fp)
 		rewind(fp);
 		fprintf(fp, PRICE_FMT, rate);
 		fflush(fp);
+	}
+
+cleanup:
+	if (ctx != NULL) {
+		tls_close(ctx);
+		tls_free(ctx);
 	}
 }
 
@@ -108,9 +115,11 @@ main(int argc, char *argv[])
 	if (!debug && daemon(0, 0) == -1)
 		err(1, "daemon");
 
-	tls_init();
+	if (tls_init() != 0)
+		err(1, "tls_init");
 
-	config = tls_config_new();
+	if ((config = tls_config_new()) == NULL)
+		err(1, "tls_config");
 
 	while (1) {
 		update_ticker("bitpay.com", "/api/rates/usd", config, fp);
