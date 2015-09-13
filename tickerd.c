@@ -42,7 +42,6 @@ static void
 update_ticker(char *host, char *path, struct tls_config *config, FILE *fp)
 {
 	struct tls *ctx;
-	size_t len;
 	char buf[4096];
 	char *json, *port = "443";
 
@@ -57,8 +56,8 @@ update_ticker(char *host, char *path, struct tls_config *config, FILE *fp)
 
 	snprintf(buf, sizeof(buf), "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path,
 		host);
-	tls_write(ctx, buf, strlen(buf), &len);
-	tls_read(ctx, buf, sizeof(buf), &len);
+	tls_write(ctx, buf, strlen(buf));
+	tls_read(ctx, buf, sizeof(buf));
 
 	json = strstr(buf, "\r\n\r\n");
 	json = json + 4;
